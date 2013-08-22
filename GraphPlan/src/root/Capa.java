@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
  * Cada capa tiene: Un conjunto*** de literales Un conjunto de acciones Un
  * conjunto de acciones NO persistencia Mutex entre literales Mutex entre
@@ -17,19 +16,25 @@ import java.util.Set;
  * 
  */
 public class Capa {
-
-	private Set<Literal> literales;
+	/**
+	 * Hay que modificar los literales, por ello se usa un Map y no un Set
+	 */
+	private Map<Literal, Literal> literales;
 	private Map<Literal, MutexLiteral> mutexLiterales;
 
 	private Set<Accion> acciones;
 	private Set<Accion> accionesSinPersistencia;
 	private Map<Accion, MutexAccion> mutexAcciones;
-
+	/**
+	 * Es posible que al hacer backtracking se vuelvan a analizar datos ya
+	 * analizados anteriormente, por ello se introducen aquí para evitar hacerlo
+	 * dos veces.
+	 */
 	private Map<List<Literal>, List<Literal>> noGoodTable;
 
 	public Capa() {
 
-		literales = new HashSet<>();
+		literales = new HashMap<>();
 		mutexLiterales = new HashMap<>();
 
 		acciones = new HashSet<>();
@@ -66,7 +71,7 @@ public class Capa {
 			muA = new MutexLiteral();
 			muA.setNodo(lA);
 			muA.getEnlacesMutex().add(lB);
-			
+
 			muMap.put(lA, muA);
 
 			// En el caso de que sí tenga Mutex pero NO tenga relación con B, lo
@@ -148,11 +153,11 @@ public class Capa {
 		return mutexLiterales;
 	}
 
-	public Set<Literal> getLiterales() {
+	public Map<Literal, Literal> getLiterales() {
 		return literales;
 	}
 
-	public void setLiterales(Set<Literal> literales) {
+	public void setLiterales(Map<Literal, Literal> literales) {
 		this.literales = literales;
 	}
 
@@ -191,29 +196,31 @@ public class Capa {
 	public void setNoGoodTable(Map<List<Literal>, List<Literal>> noGoodTable) {
 		this.noGoodTable = noGoodTable;
 	}
-	
-	public String toString(){
+
+	public String toString() {
 		String temp = "[Capa : Acciones : ";
 		Iterator<Accion> iterActs = getAcciones().iterator();
-		Iterator<Literal> iterProps = getLiterales().iterator();
-		Iterator<MutexAccion> iterMuActs = getMutexAcciones().values().iterator();
-		Iterator<MutexLiteral> iterMuProps = getMutexLiterales().values().iterator();
-	    while (iterActs.hasNext()) {
+		Iterator<Literal> iterProps = getLiterales().values().iterator();
+		Iterator<MutexAccion> iterMuActs = getMutexAcciones().values()
+				.iterator();
+		Iterator<MutexLiteral> iterMuProps = getMutexLiterales().values()
+				.iterator();
+		while (iterActs.hasNext()) {
 			temp = temp + iterActs.next().getNombre() + " ";
 		}
-	    temp = temp + "\n         Literales   : ";
-	    while (iterProps.hasNext()) {
+		temp = temp + "\n         Literales   : ";
+		while (iterProps.hasNext()) {
 			temp = temp + iterProps.next().getNombre() + " ";
 		}
-	    temp = temp + "\n         muLit : ";
-	    while (iterMuProps.hasNext()) {
+		temp = temp + "\n         muLit : ";
+		while (iterMuProps.hasNext()) {
 			temp = temp + iterMuProps.next() + " ";
 		}
-	    temp = temp + "\n         muAccs : ";
-	    while (iterMuActs.hasNext()) {
+		temp = temp + "\n         muAccs : ";
+		while (iterMuActs.hasNext()) {
 			temp = temp + iterMuActs.next() + " ";
 		}
-	    temp = temp + "\n";
+		temp = temp + "\n";
 		return temp;
 	}
 

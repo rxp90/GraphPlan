@@ -20,13 +20,13 @@ public class Accion {
 	 *            Literales de la capa actual
 	 * @return boolean
 	 */
-	public boolean esAplicable(Set<Literal> literales) {
+	public boolean esAplicable(Map<Literal, Literal> literales) {
 		boolean stop = false;
 		boolean res = true;
 		System.out.println("Literales: " + literales);
 		for (Literal precondicion : precondiciones) {
 
-			if (!literales.contains(precondicion) && !stop) {
+			if (!literales.containsKey(precondicion) && !stop) {
 				stop = true;
 				res = false;
 			}

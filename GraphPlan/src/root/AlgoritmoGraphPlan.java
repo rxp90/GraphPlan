@@ -121,11 +121,25 @@ public class AlgoritmoGraphPlan {
 		List<List<Accion>> plan = extraerSolucion(graphPlan, objetivo,
 				graphPlan.getCapas().size() - 1);
 
+		int n = 0;
+
 		while (plan == null) {
 			graphPlan.expandirGrafo();
 			plan = extraerSolucion(graphPlan, objetivo, graphPlan.getCapas()
 					.size() - 1);
+			/*
+			 * 
+			 */
+			if (plan == null && graphPlan.isFixedPointLevel()) {
+				int numNoGood = graphPlan.getNoGoodTableAt(
+						graphPlan.getFixedPointLevel()).size();
 
+				if (n == numNoGood) {
+					return null;
+				} else {
+					n = numNoGood;
+				}
+			}
 		}
 
 		return eliminarPersistencias(plan);
@@ -144,21 +158,34 @@ public class AlgoritmoGraphPlan {
 
 		System.out.println("EXTRAER SOLUCIÓN CON OBJETIVO: "
 				+ Arrays.toString(objetivo.toArray()));
-
+		/*
+		 * Caoa inicial
+		 */
 		if (i == 0) {
 			return new ArrayList<List<Accion>>();
 		}
-
-		// if(pGraph.getNoGoodTableAt(i).containsKey(goal)) return null;
-
+		/*
+		 * Ya analizado con resultado negativo.
+		 */
+		if (graphPlan.getNoGoodTableAt(i).containsKey(objetivo)) {
+			return null;
+		}
+		/*
+		 * Si ni ha fallado anteriormente ni es la capa inicial, buscamos un
+		 * plan.
+		 */
 		List<List<Accion>> planParcial = buscar(graphPlan, objetivo,
 				new ArrayList<Accion>(), i);
+
 		if (planParcial != null) {
 			System.out.println("PLAN PARCIAL: "
 					+ Arrays.toString(planParcial.toArray()));
 			return planParcial;
 		}
-		// pGraph.getNoGoodTableAt(i).put(goal, goal);
+		/*
+		 * No se consigue plan, por tanto se mete en la tabla noGood
+		 */
+		graphPlan.getNoGoodTableAt(i).put(objetivo, objetivo);
 
 		return null;
 	}
@@ -264,12 +291,9 @@ public class AlgoritmoGraphPlan {
 	private List<Accion> getResolvers(Capa capa, Literal l,
 			List<Accion> planParcial, int index) {
 		List<Accion> resolvers = new ArrayList<Accion>();
-		// ¿Necesario? ¿l != l2?
-		List<Literal> listaAux = new ArrayList<>(capa.getLiterales());
-		int aux = listaAux.indexOf(l);
-		Literal l2 = listaAux.get(aux);
 
-		System.out.println(l + "---" + l2);
+		Literal l2 = capa.getLiterales().get(l);
+
 		Map<Accion, MutexAccion> mutexAcciones = capa.getMutexAcciones();
 
 		Iterator<Accion> iterator = l2.getPosIn().iterator();

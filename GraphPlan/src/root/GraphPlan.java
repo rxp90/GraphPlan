@@ -3,8 +3,10 @@ package root;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class GraphPlan {
@@ -12,6 +14,7 @@ public class GraphPlan {
 	private List<Capa> capas = new ArrayList<>();
 	private Set<Literal> literales;
 	private Set<Accion> acciones;
+	private int fixedPointLevel = -1;
 
 	public GraphPlan(Set<Literal> literales, Set<Accion> acciones) {
 		super();
@@ -19,8 +22,17 @@ public class GraphPlan {
 		this.acciones = acciones;
 
 		Capa capaInicial = new Capa();
-
-		capaInicial.setLiterales(literales);
+		/*
+		 * Hay que copiar los literales que se reciben a la nueva capa pero SIN
+		 * SUS PROPIEDADES, sólo el nombre
+		 */
+		Map<Literal, Literal> hechos = new HashMap<>();
+		for (Literal l : literales) {
+			Literal aux = new Literal();
+			aux.setNombre(l.getNombre());
+			hechos.put(aux, aux);
+		}
+		capaInicial.setLiterales(hechos);
 
 		capas.add(capaInicial);
 	}
@@ -34,7 +46,7 @@ public class GraphPlan {
 		Set<Accion> accionesSinPersistencia = nuevaCapa
 				.getAccionesSinPersistencia();
 
-		Set<Literal> literales = nuevaCapa.getLiterales();
+		Map<Literal, Literal> literales = nuevaCapa.getLiterales();
 
 		// Crear NO-OP
 		crearPersistencia(capaPrevia);
@@ -70,10 +82,15 @@ public class GraphPlan {
 
 		System.out.println("\n\n" + nuevaCapa + "\n\n");
 
+		if (isFixedPointLevel()) {
+			fixedPointLevel = getCapas().size() - 1;
+		}
+
 	}
 
 	private void crearPersistencia(Capa capaPrevia) {
-		Iterator<Literal> iterator = capaPrevia.getLiterales().iterator();
+		Iterator<Literal> iterator = capaPrevia.getLiterales().values()
+				.iterator();
 		while (iterator.hasNext()) {
 			Literal l = iterator.next();
 
@@ -96,31 +113,57 @@ public class GraphPlan {
 	 * @param literales
 	 * @param accion
 	 */
-	private void crearRelacionesNegativas(Set<Literal> literales, Accion accion) {
+	private void crearRelacionesNegativas(Map<Literal, Literal> li,
+			Accion accion) {
 		System.out.println("Recibiendo acción: " + accion.getNombre());
 
 		// FIXME Las acciones no están bien asignadas
 
 		for (Literal efectoNegativo : accion.getEfectosNegativos()) {
-			Literal aux = new Literal();
 
-			if (!literales.contains(efectoNegativo)) {
-				aux.setNombre(efectoNegativo.getNombre());
-
-			} else {
-				aux = efectoNegativo;
+			Literal key = efectoNegativo;
+			Literal literalLi = li.get(key);
+			// Si el literal no existe en la capa, se añade SIN PROPIEDADES
+			if (literalLi == null) {
+				literalLi = new Literal();
+				literalLi.setNombre(key.getNombre());
+				li.put(literalLi, literalLi);
 			}
-			aux.getNegIn().add(accion);
-
-			// El problema del Set es que si ya existe, no modifica los datos,
-			// por lo que hay que borrarlo y volverlo a meter. Con un Map se
-			// solucionaría
-			if (literales.contains(aux)) {
-				literales.remove(aux);
-			}
-			literales.add(aux);
+			// FIXME ¿También set?
+			literalLi.getNegIn().add(accion);
 		}
 
+	}
+
+	/**
+	 * Comprueba si las dos últimas capas son iguales (fixed point)
+	 * 
+	 * @return
+	 */
+	public boolean isFixedPointLevel() {
+		if (capas.size() < 2)
+			return false;
+		Capa nuevaCapa = capas.get(capas.size() - 1);
+		Capa capaAnterior = capas.get(capas.size() - 2);
+		boolean res = nuevaCapa.getLiterales().size() == capaAnterior
+				.getLiterales().size()
+				&& getNumParesMutex(nuevaCapa.getMutexLiterales()) == getNumParesMutex(capaAnterior
+						.getMutexLiterales());
+		return res;
+	}
+
+	/**
+	 * Devuelve el número de pares Mutex entre literales.
+	 * 
+	 * @param mutexLiterales
+	 * @return
+	 */
+	public int getNumParesMutex(Map<Literal, MutexLiteral> mutexLiterales) {
+		int num = 0;
+		for (MutexLiteral l : mutexLiterales.values()) {
+			num += l.getEnlacesMutex().size();
+		}
+		return num;
 	}
 
 	/**
@@ -130,45 +173,21 @@ public class GraphPlan {
 	 * @param literales
 	 * @param accion
 	 */
-	private void crearRelacionesPositivas(Set<Literal> literales, Accion accion) {
-		// FIXME Las acciones no están bien asignadas
-
-		//List<Literal> listaLiterales = new ArrayList<Literal>(literales);
+	private void crearRelacionesPositivas(Map<Literal, Literal> li,
+			Accion accion) {
 
 		for (Literal efectoPositivo : accion.getEfectosPositivos()) {
-			Literal aux = new Literal();
 
-			if (!literales.contains(efectoPositivo)) {
-				System.out.println("AÑADIENDO EFECTO POSITIVO "
-						+ efectoPositivo);
-				// Para que no se añadan otros parámetros
-
-				aux.setNombre(efectoPositivo.getNombre());
-				// literales.add(aux);
-			} else {
-				aux = efectoPositivo;
+			Literal key = efectoPositivo;
+			Literal literalLi = li.get(key);
+			// Si el literal no existe en la capa, se añade SIN PROPIEDADES
+			if (literalLi == null) {
+				literalLi = new Literal();
+				literalLi.setNombre(key.getNombre());
+				li.put(literalLi, literalLi);
 			}
-			/*
-			 * int index = listaLiterales.indexOf(efectoPositivo); if (index >=
-			 * 0) { listaLiterales.get(index).getPosIn().add(accion); }
-			 */
-			System.out.println("AÑADIENDO ACCION A EFECTO POSITIVO "
-					+ efectoPositivo + " ---- " + accion);
-
-			aux.getPosIn().add(accion);
-
-			// El problema del Set es que si ya existe, no modifica los datos,
-			// por lo que hay que borrarlo y volverlo a meter. Con un Map se
-			// solucionaría
-			if (literales.contains(aux)) {
-				literales.remove(aux);
-			}
-			literales.add(aux);
-
-			System.out
-					.println(" %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% RESULTADO EFECTO "
-							+ aux.getPosIn());
-
+			// FIXME ¿También set?
+			literalLi.getPosIn().add(accion);
 		}
 	}
 
@@ -178,13 +197,11 @@ public class GraphPlan {
 	 * @param literalesAnteriores
 	 * @param accion
 	 */
-	private void crearRelacionesSalida(Set<Literal> literalesAnteriores,
-			Accion accion) {
+	private void crearRelacionesSalida(
+			Map<Literal, Literal> literalesAnteriores, Accion accion) {
 		// FIXME Las acciones no están bien asignadas
 
 		Iterator<Literal> iterator = accion.getPrecondiciones().iterator();
-		List<Literal> listaLiterales = new ArrayList<Literal>(
-				literalesAnteriores);
 
 		while (iterator.hasNext()) {
 			/*
@@ -192,11 +209,7 @@ public class GraphPlan {
 			 * innecesaria...
 			 */
 			Literal aux = (Literal) iterator.next();
-
-			int index = listaLiterales.indexOf(aux);
-			listaLiterales.get(index).getSalida().add(accion);
-			System.out.println("¿?¿? Arco salida: " + listaLiterales.get(index)
-					+ " ççç " + accion);
+			literalesAnteriores.get(aux).getSalida().add(accion);
 
 		}
 	}
@@ -207,8 +220,9 @@ public class GraphPlan {
 	 * @param nuevaCapa
 	 * @param literales
 	 */
-	private void crearMutexLiterales(Capa nuevaCapa, Set<Literal> literales) {
-		List<Literal> listaLiterales = new ArrayList<>(literales);
+	private void crearMutexLiterales(Capa nuevaCapa,
+			Map<Literal, Literal> literales) {
+		List<Literal> listaLiterales = new ArrayList<>(literales.values());
 		System.out
 				.println("´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´CREANDO MUTEX LITERALES: "
 						+ Arrays.toString(listaLiterales.toArray()));
@@ -352,11 +366,10 @@ public class GraphPlan {
 	 * @param objetivo
 	 * @return
 	 */
-	// FIXME
 	public boolean cumpleObjetivo(List<Literal> objetivo) {
 		Capa capaActual = capas.get(capas.size() - 1);
 		for (Literal l : objetivo) {
-			if (!capaActual.getLiterales().contains(l)) {
+			if (!capaActual.getLiterales().containsKey(l)) {
 				return false;
 			}
 			MutexLiteral mutex = capaActual.getMutexLiterales().get(l);
@@ -365,6 +378,19 @@ public class GraphPlan {
 			}
 		}
 		return true;
+	}
+
+	public Map<List<Literal>, List<Literal>> getNoGoodTableAt(int index) {
+
+		return capas.get(index).getNoGoodTable();
+	}
+
+	public int getFixedPointLevel() {
+		return fixedPointLevel;
+	}
+
+	public void setFixedPointLevel(int fixedPointLevel) {
+		this.fixedPointLevel = fixedPointLevel;
 	}
 
 	public List<Capa> getCapas() {
