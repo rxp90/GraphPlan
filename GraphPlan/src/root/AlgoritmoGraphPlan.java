@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class AlgoritmoGraphPlan {
+
 	private GraphPlan graphPlan;
 	private String salida;
 	private Set<Accion> acciones;
@@ -71,12 +72,13 @@ public class AlgoritmoGraphPlan {
 	 */
 	private boolean crearGrafoPlanificacion() {
 		while (!graphPlan.cumpleObjetivo(objetivo)) {
-			/*
-			 * Revisar qué es el fixedPointLevel if
-			 * (graphPlan.isFixedPointLevel()) { return false; } else {
-			 * graphPlan.expandirGrafo(); }
-			 */
-			graphPlan.expandirGrafo();
+
+			if (graphPlan.isFixedPointLevel()) {
+				return false;
+			} else {
+				graphPlan.expandirGrafo();
+			}
+
 		}
 		return true;
 	}
@@ -288,6 +290,15 @@ public class AlgoritmoGraphPlan {
 		return precondiciones;
 	}
 
+	/**
+	 * Devuelve las acciones que tienen al literal l como consecuencia
+	 * 
+	 * @param capa
+	 * @param l
+	 * @param planParcial
+	 * @param index
+	 * @return
+	 */
 	private List<Accion> getResolvers(Capa capa, Literal l,
 			List<Accion> planParcial, int index) {
 		List<Accion> resolvers = new ArrayList<Accion>();
@@ -331,7 +342,7 @@ public class AlgoritmoGraphPlan {
 	}
 
 	/**
-	 * Elimina las acciones de persistencias del plan
+	 * Elimina las acciones de persistencias del plan para mostrar el resultado final.
 	 * 
 	 * @param plan
 	 * @return

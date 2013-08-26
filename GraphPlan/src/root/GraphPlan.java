@@ -58,7 +58,7 @@ public class GraphPlan {
 			if (accion.esAplicable(capaPrevia.getLiterales())
 					&& !accion.tienePrecondicionesMutex(capaPrevia
 							.getMutexLiterales())) {
-				// FIXME A馻de demasiadas persistencias
+
 				accionesNuevas.add(accion);
 
 				if (!accion.getEsPersistencia()) {
@@ -88,6 +88,11 @@ public class GraphPlan {
 
 	}
 
+	/**
+	 * Crea las acciones de persistencia para la siguiente capa.
+	 * 
+	 * @param capaPrevia
+	 */
 	private void crearPersistencia(Capa capaPrevia) {
 		Iterator<Literal> iterator = capaPrevia.getLiterales().values()
 				.iterator();
@@ -117,8 +122,6 @@ public class GraphPlan {
 			Accion accion) {
 		System.out.println("Recibiendo acci髇: " + accion.getNombre());
 
-		// FIXME Las acciones no est醤 bien asignadas
-
 		for (Literal efectoNegativo : accion.getEfectosNegativos()) {
 
 			Literal key = efectoNegativo;
@@ -129,7 +132,6 @@ public class GraphPlan {
 				literalLi.setNombre(key.getNombre());
 				li.put(literalLi, literalLi);
 			}
-			// FIXME 縏ambi閚 set?
 			literalLi.getNegIn().add(accion);
 		}
 
@@ -186,7 +188,6 @@ public class GraphPlan {
 				literalLi.setNombre(key.getNombre());
 				li.put(literalLi, literalLi);
 			}
-			// FIXME 縏ambi閚 set?
 			literalLi.getPosIn().add(accion);
 		}
 	}
@@ -199,15 +200,11 @@ public class GraphPlan {
 	 */
 	private void crearRelacionesSalida(
 			Map<Literal, Literal> literalesAnteriores, Accion accion) {
-		// FIXME Las acciones no est醤 bien asignadas
 
 		Iterator<Literal> iterator = accion.getPrecondiciones().iterator();
 
 		while (iterator.hasNext()) {
-			/*
-			 * Podr韆 hacerse con un Map con K=V, pero por no usar memoria
-			 * innecesaria...
-			 */
+
 			Literal aux = (Literal) iterator.next();
 			literalesAnteriores.get(aux).getSalida().add(accion);
 
@@ -226,7 +223,6 @@ public class GraphPlan {
 		System.out
 				.println("创创创创创创创创创创创创创创创创创创创创创创创创CREANDO MUTEX LITERALES: "
 						+ Arrays.toString(listaLiterales.toArray()));
-		// FIXME NO LOS CREA BIEN
 		/*
 		 * Busca si cualquier par de acciones son excluyentes. Para ello recorre
 		 * la lista de literales cogiendo un elemento y su siguiente
@@ -252,8 +248,6 @@ public class GraphPlan {
 					accionesComunes = accionesQ.contains(iteratorP.next());
 				}
 
-				// FIXME DEBE CREAR MUTEX[PatSpare,Ground :
-				// {PatSpare,Trunk=PatSpare,Trunk}]
 				/*
 				 * Si no hay ninguna accion com鷑 (creo que si hay comunes no
 				 * pueden ser MUTEX los literales), comprobamos si TODAS las
@@ -315,7 +309,6 @@ public class GraphPlan {
 	private void crearMutexAcciones(Capa nuevaCapa, Capa capaPrevia,
 			Set<Accion> accionesNuevas) {
 
-		// FIXME
 		List<Accion> listaAcciones = new ArrayList<>(accionesNuevas);
 
 		for (int i = 0; i < listaAcciones.size(); i++) {
